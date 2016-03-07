@@ -126,6 +126,7 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
                                         height = ((ovlPos & 1) == 1) ? destRect.top : destRect.bottom-ovl.getHeight();
                                         width  = ((ovlPos & 8) == 8) ? destRect.left : destRect.right -ovl.getWidth();
                                         c.drawBitmap(ovl, width, height, null);
+
                                     }
                                     p.setXfermode(null);
                                     frameCounter++;
