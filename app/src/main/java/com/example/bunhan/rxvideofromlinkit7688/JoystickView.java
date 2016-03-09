@@ -87,7 +87,7 @@ public class JoystickView extends View implements Runnable {
 
         horizontalLine = new Paint();
         horizontalLine.setStrokeWidth(1);
-        horizontalLine.setColor(Color.BLACK);
+        horizontalLine.setColor(Color.RED);
 
         button = new Paint(Paint.ANTI_ALIAS_FLAG);
         //if(tLMode == true){
@@ -110,7 +110,7 @@ public class JoystickView extends View implements Runnable {
         }
 
         if(tLMode == true){
-            yPosition = (int) (getWidth() - (getWidth()*0.11));
+            yPosition = (int) (getWidth() - (getWidth()*0.15));
             button.setColor(Color.YELLOW);
         }
         int d = Math.min(xNew, yNew);

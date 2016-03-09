@@ -38,14 +38,15 @@ public class MainActivity extends Activity {
     static String portS = "12345";//port udp
     byte   packetDataControl[] = {(byte)0xfe,0,0,0,0,0};//startBit,ch1,ch2,ch3,ch4,sum(ch1...4)
 
-    int ch1_roll,ch2_ele;
-    int y ;
-    float x ;
+    int ch1_roll ,ch2_ele,ch3_power,ch4_rudder;
+    float y ,y2;
+    float x ,x2;
     boolean sendDatas = true;
     boolean sendDataFished = true;
+    boolean startJoyLeft = false;
     SendDataViaUDP mySendDataViaUDP;
 
-    private JoystickView joystickR,joystick2;
+    private JoystickView joystickR,joystickL;
 
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
@@ -98,7 +99,7 @@ public class MainActivity extends Activity {
         new DoRead().execute(URL);
         //
         //Event listener that always returns the variation of the angle in degrees, motion power in percentage and direction of movement
-        joystickR = (JoystickView) findViewById(R.id.joystickView);
+        joystickR = (JoystickView) findViewById(R.id.joystickViewRight);
         joystickR.setOnJoystickMoveListener(new OnJoystickMoveListener() {
 
             @Override
@@ -109,8 +110,36 @@ public class MainActivity extends Activity {
                 //angleTextView.setText(" " + String.valueOf(angle) + "'");
                 //powerTextView.setText(" " + String.valueOf(power) + "%");
 
-                 y = (int) ((Math.cos(Math.toRadians(angle)))*power);
-                 x = (int) ((Math.sin(Math.toRadians(angle)))*power);
+                y = (int) ((Math.cos(Math.toRadians(angle))) * power);
+                x = (int) ((Math.sin(Math.toRadians(angle))) * power);
+
+                //ch1_ele	 =
+                sendUDPdata();
+                //sendFinish = false;
+                //end send data
+
+                //directionTextView.setText("y = "+String.valueOf(y)+"   x = "+String.valueOf(x));
+            }
+        }, JoystickView.DEFAULT_LOOP_INTERVAL);
+        //joy left trotor
+        joystickL = (JoystickView) findViewById(R.id.joystickViewLeft);
+        //set for ch3 low at start
+        joystickL.tLMode = true;
+        joystickL.setyPositionY((int)y2);
+        joystickL.setOnJoystickMoveListener(new OnJoystickMoveListener() {
+
+            @Override
+            public void onValueChanged(int angle, int power, int direction) {
+                // TODO Auto-generated method stub
+                startJoyLeft = true;
+                joystickL.tMode = true;
+                joystickL.tLMode = false;
+
+                //angleTextView.setText(" " + String.valueOf(angle) + "'");
+                //powerTextView.setText(" " + String.valueOf(power) + "%");
+
+                y2 = (int) ((Math.cos(Math.toRadians(angle)))*power);
+                x2 = (int) ((Math.sin(Math.toRadians(angle)))*power);
 
                 //ch1_ele	 =
                 sendUDPdata();
@@ -270,13 +299,16 @@ public class MainActivity extends Activity {
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             sendDataFished = true;
-            debug.setText(String.valueOf(ch1_roll));
+            debug.setText("ch1 roll:"+String.valueOf(ch1_roll)+ "ch2 ele :"+ String.valueOf(ch2_ele)+" ch3:"+String.valueOf(ch3_power)+" ch4:"+String.valueOf(ch4_rudder));
         }
     }
 
 public void sendUDPdata(){
     ch1_roll = (int) ((int) x*1.6f);
-    ch2_ele =  (int) y;
+    ch2_ele = (int) ((int) y*1.6f);
+    ch3_power = (int) ((int) y2*1.6f);
+
+    ch4_rudder = (int) ((int) x2*1.6f);
    /* if(startJoy2 == true){
         ch3_power =  (int) ((y2 + 60)*0.9*0.85470085470085470085470085470085);
         if(ch3_power<0){
@@ -325,39 +357,32 @@ public void sendUDPdata(){
             ch2_ele += 9;
         }
     }
-   /*
+
     //
     //++++++++  CH4  ++++++++
-    if(ch4_yaw > 126){//offset right yaw
-        if(ch4_yaw < 136){
-            ch4_yaw = 126;
+    if(ch4_rudder > 0){//offset right yaw
+        if(ch4_rudder < 10){
+            ch4_rudder = 0;
         }else{
-            ch4_yaw -= 10;
+            ch4_rudder -= 10;
         }
 
     }
-    if(ch4_yaw < 126){//offset left yaw
-        if(ch4_yaw > 116){
-            ch4_yaw = 126;
+    if(ch4_rudder < 0){//offset left yaw
+        if(ch4_rudder > -10){
+            ch4_rudder = 0;
         }else{
-            ch4_yaw += 10;
+            ch4_rudder += 10;
         }
     }
-    ch4_yaw += yv;
-    //
-    //end off set
-    if(ch1_ele < 0){
-        //ch1_ele = 0;
-    }
-    if(ch2_roll < 0){
-        //ch2_roll = 0;
-    }
-
-    if(ch4_yaw < 0){
-        //ch4_yaw = 0;
+   // ch4_yaw += yv;
+    //ch3
+    ch3_power = fMap(ch3_power,-108, 108, 0, 100);
+    if(!startJoyLeft){
+        ch3_power = 0;
     }
     //KI! off when control roll pitch
-    */
+
     //dataOut.setText("Ele = "+String.valueOf(ch1_ele)+"  Roll = "+String.valueOf(ch2_roll)+"  Power = "+String.valueOf(ch3_power)+"  Yaw = "+String.valueOf(ch4_yaw));
     //
     if(sendDatas){
@@ -366,9 +391,9 @@ public void sendUDPdata(){
 
         packetDataControl[1] = (byte) ((byte) ch1_roll);
         packetDataControl[2] = (byte) ((byte) ch2_ele);
-        packetDataControl[3] = (byte) ((byte) 0);
-        packetDataControl[4] =  (byte) ((byte) 0) ;
-        packetDataControl[5] =  (byte) ((byte) (((byte) ch1_roll) + ((byte) ch2_ele) + 0 + ((byte) 0 ))); //sum
+        packetDataControl[3] = (byte) ((byte) ch3_power);
+        packetDataControl[4] =  (byte) ((byte) ch4_rudder) ;
+        packetDataControl[5] =  (byte) ((byte) (((byte) ch1_roll) + ((byte) ch2_ele) + ((byte)ch3_power) + ((byte) ch4_rudder ))); //sum
         //sendCount++;
         if(sendDataFished){
             //if(myClientTask.getStatus() == AsyncTask.Status.PENDING){
@@ -398,5 +423,9 @@ public void sendUDPdata(){
 
     // }
 }
+    public  int fMap(int x, int in_min, int in_max, int out_min, int out_max)
+    {
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    }
 
 }//end MainActivity
